@@ -16,7 +16,12 @@ from news_sentinel.inference.schemas import (
     PredictRequest,
     PredictResponse,
 )
-from news_sentinel.llm.gemini_summary import GeminiIncidentSummarizer, GeminiSummaryUnavailableError
+from news_sentinel.llm.gemini_summary import (
+    GeminiIncidentSummarizer,
+    GeminiSummaryRuntimeError,
+    GeminiSummaryUnavailableError,
+    build_local_incident_summary,
+)
 from news_sentinel.observability.metrics import (
     ERRORS_TOTAL,
     INCIDENT_SUMMARIES_TOTAL,
@@ -156,6 +161,17 @@ def incident_summary(payload: IncidentSummaryRequest) -> IncidentSummaryResponse
             model_used=result.model_used,
             confidence=result.confidence,
             class_scores=result.class_scores,
+        )
+    except GeminiSummaryRuntimeError as exc:
+        INCIDENT_SUMMARIES_TOTAL.labels(status="fallback", model=result.model_used).inc()
+        ERRORS_TOTAL.labels(path="/incident-summary", error_type=type(exc).__name__).inc()
+        summary = build_local_incident_summary(
+            headline=payload.text,
+            predicted_label=result.label_name,
+            model_used=result.model_used,
+            confidence=result.confidence,
+            class_scores=result.class_scores,
+            failure_note=str(exc),
         )
     except Exception as exc:
         INCIDENT_SUMMARIES_TOTAL.labels(status="error", model=result.model_used).inc()

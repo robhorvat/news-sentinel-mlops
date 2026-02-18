@@ -27,3 +27,4 @@ def test_configmap_contains_model_paths() -> None:
     assert "BASELINE_MODEL_PATH" in data
     assert "TEXTCNN_CHECKPOINT_PATH" in data
     assert "GEMINI_SUMMARY_ENABLED" in data
+    assert "GEMINI_SUMMARY_MODEL" in data

@@ -133,7 +133,9 @@ Local run:
 ```bash
 make install-gemini
 export GEMINI_SUMMARY_ENABLED=1
-export GEMINI_API_KEY="your_key_here"
+export GEMINI_API_KEY="AIza..."   # use a real key, not the literal string "your_key"
+export GEMINI_SUMMARY_MODEL="gemini-2.5-flash"
+export GEMINI_SUMMARY_FALLBACK_MODELS="gemini-2.0-flash,gemini-1.5-flash"
 make run-api
 ```
 
@@ -142,6 +144,8 @@ Kubernetes run:
 - `k8s/configmap.yaml` sets `GEMINI_SUMMARY_ENABLED=0` by default.
 - `make minikube-secret-from-env` injects `GEMINI_API_KEY` from `.env`.
 - Set `GEMINI_SUMMARY_ENABLED=1` in `k8s/configmap.yaml` (or `kubectl set env`) to activate.
+
+If Gemini returns auth/quota/model errors at runtime, the endpoint now falls back to a deterministic local incident summary so the dashboard remains demo-safe.
 
 ## CI
 

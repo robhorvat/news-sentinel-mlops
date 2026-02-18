@@ -1,24 +1,43 @@
-from news_sentinel.llm.gemini_summary import GeminiSummaryConfig
+from news_sentinel.llm.gemini_summary import GeminiSummaryConfig, build_local_incident_summary
 
 
 def test_gemini_summary_config_defaults_disabled(monkeypatch) -> None:
     monkeypatch.delenv("GEMINI_SUMMARY_ENABLED", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_SUMMARY_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_SUMMARY_FALLBACK_MODELS", raising=False)
 
     config = GeminiSummaryConfig.from_env()
     assert config.enabled is False
     assert config.api_key == ""
-    assert config.model == "gemini-1.5-flash"
+    assert config.model == "gemini-2.5-flash"
+    assert config.fallback_models == ("gemini-2.0-flash", "gemini-1.5-flash")
 
 
 def test_gemini_summary_config_reads_env(monkeypatch) -> None:
     monkeypatch.setenv("GEMINI_SUMMARY_ENABLED", "true")
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.setenv("GEMINI_SUMMARY_MODEL", "gemini-2.0-flash")
+    monkeypatch.setenv("GEMINI_SUMMARY_FALLBACK_MODELS", "gemini-1.5-flash")
     monkeypatch.setenv("GEMINI_SUMMARY_TEMPERATURE", "0.3")
 
     config = GeminiSummaryConfig.from_env()
     assert config.enabled is True
     assert config.api_key == "test-key"
     assert config.model == "gemini-2.0-flash"
+    assert config.fallback_models == ("gemini-1.5-flash",)
     assert config.temperature == 0.3
+
+
+def test_build_local_incident_summary_contains_core_fields() -> None:
+    text = build_local_incident_summary(
+        headline="Oil prices climb after supply chain disruptions",
+        predicted_label="Business",
+        model_used="baseline",
+        confidence=0.78,
+        class_scores={"0": 0.07, "1": 0.06, "2": 0.78, "3": 0.09},
+        failure_note="Gemini API error (401): invalid key",
+    )
+    assert "Situation" in text
+    assert "Business" in text
+    assert "Gemini fallback" in text

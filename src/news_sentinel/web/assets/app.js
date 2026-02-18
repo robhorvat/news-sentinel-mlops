@@ -214,12 +214,15 @@ async function runIncidentSummary() {
   }
 }
 
-function sumMetricValues(metricsText, metricName) {
+function sumMetricValues(metricsText, metricName, lineMustContain = null) {
   const lines = metricsText.split("\n");
   let total = 0;
 
   for (const line of lines) {
     if (!line.startsWith(metricName + "{")) {
+      continue;
+    }
+    if (lineMustContain && !line.includes(lineMustContain)) {
       continue;
     }
     const value = Number(line.split(" ").pop());
@@ -236,7 +239,7 @@ async function refreshMetrics() {
 
   const requests = sumMetricValues(text, "news_api_requests_total");
   const preds = sumMetricValues(text, "news_api_predictions_total");
-  const errors = sumMetricValues(text, "news_api_errors_total");
+  const errors = sumMetricValues(text, "news_api_errors_total", 'path="/predict"');
 
   requestsMetricEl.textContent = String(Math.round(requests));
   predsMetricEl.textContent = String(Math.round(preds));
