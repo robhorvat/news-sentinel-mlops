@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News Sentinel Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="background-glow glow-a"></div>
+    <div class="background-glow glow-b"></div>
+
+    <main class="layout">
+      <section class="hero card">
+        <p class="kicker">NLP MLOps Demo</p>
+        <h1>News Sentinel Control Room</h1>
+        <p class="muted">
+          FastAPI + classical baseline + PyTorch verifier path, with live telemetry and prediction confidence.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <span class="label">Service</span>
+            <strong id="service-status">checking...</strong>
+          </div>
+          <div>
+            <span class="label">Available Models</span>
+            <strong id="available-models">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="predict card">
+        <h2>Classify Headline</h2>
+        <label for="headline-input">Headline text</label>
+        <textarea id="headline-input" rows="4" placeholder="Type a news headline..."></textarea>
+
+        <div class="controls">
+          <div class="field">
+            <label for="model-select">Model</label>
+            <select id="model-select">
+              <option value="auto">auto</option>
+              <option value="baseline">baseline</option>
+              <option value="textcnn">textcnn</option>
+            </select>
+          </div>
+          <button id="predict-btn" type="button">Run Prediction</button>
+        </div>
+
+        <div class="example-wrap">
+          <span class="label">Quick examples</span>
+          <div class="chips" id="example-chips"></div>
+        </div>
+      </section>
+
+      <section class="results card">
+        <h2>Prediction Output</h2>
+        <div class="result-top">
+          <div class="result-box">
+            <span class="label">Predicted Label</span>
+            <strong id="pred-label">-</strong>
+          </div>
+          <div class="result-box">
+            <span class="label">Model Used</span>
+            <strong id="pred-model">-</strong>
+          </div>
+          <div class="result-box">
+            <span class="label">Confidence</span>
+            <strong id="pred-confidence">-</strong>
+          </div>
+        </div>
+
+        <div id="score-bars" class="score-bars"></div>
+
+        <h3>Recent Requests</h3>
+        <div class="history" id="history"></div>
+      </section>
+
+      <section class="telemetry card">
+        <h2>Telemetry Snapshot</h2>
+        <p class="muted">Live parse from <code>/metrics</code></p>
+        <div class="telemetry-grid">
+          <div class="metric-box">
+            <span class="label">Total Requests</span>
+            <strong id="m-requests">0</strong>
+          </div>
+          <div class="metric-box">
+            <span class="label">Total Predictions</span>
+            <strong id="m-preds">0</strong>
+          </div>
+          <div class="metric-box">
+            <span class="label">Prediction Errors</span>
+            <strong id="m-errors">0</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/assets/app.js"></script>
+  </body>
+</html>

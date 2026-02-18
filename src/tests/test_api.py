@@ -29,6 +29,25 @@ def test_healthz_endpoint() -> None:
     assert response.json()["status"] == "ok"
 
 
+def test_root_endpoint_contains_dashboard_link() -> None:
+    app.state.predictor_manager = _FakeManager()
+    client = TestClient(app)
+
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["dashboard"] == "/dashboard"
+
+
+def test_dashboard_endpoint_serves_html() -> None:
+    app.state.predictor_manager = _FakeManager()
+    client = TestClient(app)
+
+    response = client.get("/dashboard")
+    assert response.status_code == 200
+    assert "News Sentinel Control Room" in response.text
+
+
 
 def test_predict_endpoint() -> None:
     app.state.predictor_manager = _FakeManager()

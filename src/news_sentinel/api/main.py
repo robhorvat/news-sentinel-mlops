@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from time import perf_counter
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from news_sentinel.inference.predictors import PredictorManager
 from news_sentinel.inference.schemas import HealthResponse, PredictRequest, PredictResponse
@@ -23,6 +26,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="News Sentinel API", version="0.1.0", lifespan=lifespan)
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"
+app.mount("/assets", StaticFiles(directory=str(WEB_DIR / "assets")), name="assets")
 
 
 @app.middleware("http")
@@ -63,11 +68,17 @@ def root() -> dict:
     return {
         "service": "news-sentinel-api",
         "status": "ok",
+        "dashboard": "/dashboard",
         "docs": "/docs",
         "health": "/healthz",
         "predict": "/predict",
         "metrics": "/metrics",
     }
+
+
+@app.get("/dashboard")
+def dashboard() -> FileResponse:
+    return FileResponse(WEB_DIR / "index.html")
 
 
 @app.get("/metrics")

@@ -64,6 +64,7 @@ make quality-gate-soft
 
 # api
 make run-api
+# open http://localhost:8000/dashboard
 
 # tests
 make test
@@ -82,6 +83,7 @@ This fail is expected right now and useful: it prevents promoting a worse model.
 
 ## API Endpoints
 
+- `GET /dashboard` (visual demo UI)
 - `GET /healthz`
 - `GET /models`
 - `POST /predict`
