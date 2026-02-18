@@ -9,5 +9,5 @@ data:
   MODEL_REGISTRY_LATEST_PATH: "artifacts/model_registry_latest.json"
   GEMINI_SUMMARY_ENABLED: "0"
   GEMINI_SUMMARY_MODEL: "gemini-2.5-flash"
-  GEMINI_SUMMARY_FALLBACK_MODELS: "gemini-2.0-flash,gemini-1.5-flash"
+  GEMINI_SUMMARY_FALLBACK_MODELS: ""
   GEMINI_SUMMARY_TEMPERATURE: "0.2"

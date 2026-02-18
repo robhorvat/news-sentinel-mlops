@@ -15,7 +15,7 @@ def test_gemini_summary_config_defaults_disabled(monkeypatch) -> None:
     assert config.enabled is False
     assert config.api_key == ""
     assert config.model == "gemini-2.5-flash"
-    assert config.fallback_models == ("gemini-2.0-flash", "gemini-1.5-flash")
+    assert config.fallback_models == ()
 
 
 def test_gemini_summary_config_reads_env(monkeypatch) -> None:

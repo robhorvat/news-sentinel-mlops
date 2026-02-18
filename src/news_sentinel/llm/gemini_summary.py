@@ -28,7 +28,7 @@ class GeminiSummaryConfig:
         primary_model = os.getenv("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash").strip()
         fallback_raw = os.getenv(
             "GEMINI_SUMMARY_FALLBACK_MODELS",
-            "gemini-2.0-flash,gemini-1.5-flash",
+            "",
         )
         fallback_models = tuple(
             model
@@ -99,38 +99,64 @@ class GeminiIncidentSummarizer:
 
         models_to_try = tuple(dict.fromkeys((self._model_name, *self._fallback_models)))
         last_error = ""
+        primary_error = ""
 
         for model_name in models_to_try:
-            try:
-                response = self._client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=self._genai_types.GenerateContentConfig(
-                        temperature=self._temperature,
-                        max_output_tokens=260,
-                    ),
-                )
-                text = (getattr(response, "text", "") or "").strip()
-                if text and _has_required_sections(text):
-                    return text
-                if text:
-                    last_error = (
-                        f"incomplete Gemini summary from {model_name}: "
-                        "missing one or more required sections"
+            max_attempts = 2 if model_name == self._model_name else 1
+            for _attempt in range(max_attempts):
+                try:
+                    response = self._client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=self._genai_types.GenerateContentConfig(
+                            temperature=self._temperature,
+                            max_output_tokens=260,
+                        ),
                     )
-                else:
-                    last_error = f"empty Gemini response from model {model_name}"
-            except self._genai_errors.APIError as exc:
-                code = getattr(exc, "status", "unknown")
-                message = (getattr(exc, "message", "") or str(exc)).strip()
-                last_error = f"Gemini API error ({code}): {message}"
+                    text = (getattr(response, "text", "") or "").strip()
+                    if text and _has_required_sections(text):
+                        return text
+                    if text:
+                        msg = (
+                            f"incomplete Gemini summary from {model_name}: "
+                            "missing one or more required sections"
+                        )
+                    else:
+                        msg = f"empty Gemini response from model {model_name}"
 
-                # Invalid key / permissions / quota are not fixed by model fallback.
-                if code in {401, 403, 429}:
+                    if model_name == self._model_name:
+                        primary_error = msg
+                    last_error = msg
+                    # Retry the primary model once before moving on.
+                    continue
+                except self._genai_errors.APIError as exc:
+                    code = _normalize_error_code(getattr(exc, "status", "unknown"))
+                    message = (getattr(exc, "message", "") or str(exc)).strip()
+                    msg = f"Gemini API error ({code}): {message}"
+
+                    # Do not let unavailable fallback model names hide primary model behavior.
+                    if code == "NOT_FOUND" and model_name != self._model_name:
+                        if not last_error:
+                            last_error = msg
+                        break
+
+                    if model_name == self._model_name:
+                        primary_error = msg
+                    last_error = msg
+
+                    # Auth/quota/permission/input errors should stop immediately.
+                    if _is_terminal_api_error(code):
+                        raise GeminiSummaryRuntimeError(last_error)
                     break
-            except Exception as exc:
-                last_error = f"Gemini request failed: {type(exc).__name__}: {exc}"
-                break
+                except Exception as exc:
+                    msg = f"Gemini request failed: {type(exc).__name__}: {exc}"
+                    if model_name == self._model_name:
+                        primary_error = msg
+                    last_error = msg
+                    break
+
+        if primary_error:
+            raise GeminiSummaryRuntimeError(primary_error)
 
         raise GeminiSummaryRuntimeError(last_error or "Unknown Gemini summary failure.")
 
@@ -207,6 +233,27 @@ def _has_required_sections(text: str) -> bool:
     required = ("Situation", "Evidence", "Risk", "Next Action")
     lowered = text.lower()
     return all(section.lower() in lowered for section in required)
+
+
+def _normalize_error_code(code: object) -> str:
+    if isinstance(code, int):
+        return str(code)
+    return str(code).strip().upper()
+
+
+def _is_terminal_api_error(code: str) -> bool:
+    terminal_codes = {
+        "400",
+        "401",
+        "403",
+        "404",
+        "429",
+        "INVALID_ARGUMENT",
+        "UNAUTHENTICATED",
+        "PERMISSION_DENIED",
+        "RESOURCE_EXHAUSTED",
+    }
+    return code in terminal_codes
 
 
 def _top_labels(class_scores: Dict[str, float], limit: int = 2) -> Iterable[tuple[str, float]]:

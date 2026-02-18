@@ -135,7 +135,8 @@ make install-gemini
 export GEMINI_SUMMARY_ENABLED=1
 export GEMINI_API_KEY="AIza..."   # use a real key, not the literal string "your_key"
 export GEMINI_SUMMARY_MODEL="gemini-2.5-flash"
-export GEMINI_SUMMARY_FALLBACK_MODELS="gemini-2.0-flash,gemini-1.5-flash"
+# Optional. Leave empty unless you verified model names in your account/region.
+export GEMINI_SUMMARY_FALLBACK_MODELS=""
 make run-api
 ```
 
