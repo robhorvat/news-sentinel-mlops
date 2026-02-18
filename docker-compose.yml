@@ -1,0 +1,14 @@
+services:
+  news-sentinel-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_TORCH: "0"
+    image: news-sentinel-mlops:cpu
+    ports:
+      - "8000:8000"
+    environment:
+      - BASELINE_MODEL_PATH=artifacts/baseline_tfidf_svc.joblib
+      - TEXTCNN_CHECKPOINT_PATH=artifacts/textcnn_quick/textcnn.pt
+      - MODEL_REGISTRY_LATEST_PATH=artifacts/model_registry_latest.json

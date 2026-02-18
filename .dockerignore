@@ -1,0 +1,15 @@
+.git
+.gitignore
+venv
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+
+# Local-only data/artifacts unless you intentionally train before image build
+reports/
+data/ag_news/raw/

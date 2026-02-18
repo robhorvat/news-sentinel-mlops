@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: news-sentinel-config
+  namespace: news-sentinel
+data:
+  BASELINE_MODEL_PATH: "artifacts/baseline_tfidf_svc.joblib"
+  TEXTCNN_CHECKPOINT_PATH: "artifacts/textcnn_quick/textcnn.pt"
+  MODEL_REGISTRY_LATEST_PATH: "artifacts/model_registry_latest.json"
