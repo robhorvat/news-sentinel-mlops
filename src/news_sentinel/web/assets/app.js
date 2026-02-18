@@ -1,8 +1,11 @@
 const serviceStatusEl = document.getElementById("service-status");
 const availableModelsEl = document.getElementById("available-models");
+const incidentStatusEl = document.getElementById("incident-status");
 const modelSelectEl = document.getElementById("model-select");
 const headlineEl = document.getElementById("headline-input");
 const predictBtnEl = document.getElementById("predict-btn");
+const incidentBtnEl = document.getElementById("incident-btn");
+const incidentOutputEl = document.getElementById("incident-output");
 const predLabelEl = document.getElementById("pred-label");
 const predModelEl = document.getElementById("pred-model");
 const predConfidenceEl = document.getElementById("pred-confidence");
@@ -60,6 +63,12 @@ async function fetchHealth() {
       option.disabled = !allowed.has(option.value);
     }
   }
+}
+
+async function fetchRootStatus() {
+  const res = await fetch("/");
+  const data = await res.json();
+  incidentStatusEl.textContent = data.incident_summary_status || "unknown";
 }
 
 function renderScores(classScores, predictedLabel) {
@@ -161,6 +170,50 @@ async function runPrediction() {
   }
 }
 
+async function runIncidentSummary() {
+  const text = headlineEl.value.trim();
+  if (!text) {
+    headlineEl.focus();
+    return;
+  }
+
+  incidentBtnEl.disabled = true;
+  incidentBtnEl.textContent = "Generating...";
+
+  try {
+    const payload = {
+      text,
+      model: modelSelectEl.value,
+    };
+
+    const res = await fetch("/incident-summary", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "incident summary failed");
+    }
+
+    incidentOutputEl.textContent = [
+      data.summary,
+      "",
+      `Predicted Label: ${data.predicted_label}`,
+      `Model Used: ${data.model_used}`,
+      `Confidence: ${(Number(data.confidence) * 100).toFixed(2)}%`,
+    ].join("\n");
+
+    await refreshMetrics();
+  } catch (err) {
+    incidentOutputEl.textContent = `Incident summary unavailable: ${err.message}`;
+  } finally {
+    incidentBtnEl.disabled = false;
+    incidentBtnEl.textContent = "Generate Incident Summary";
+  }
+}
+
 function sumMetricValues(metricsText, metricName) {
   const lines = metricsText.split("\n");
   let total = 0;
@@ -191,10 +244,12 @@ async function refreshMetrics() {
 }
 
 predictBtnEl.addEventListener("click", runPrediction);
+incidentBtnEl.addEventListener("click", runIncidentSummary);
 
 (async function init() {
   setExamples();
   renderHistory();
+  await fetchRootStatus();
   await fetchHealth();
   await refreshMetrics();
 })();

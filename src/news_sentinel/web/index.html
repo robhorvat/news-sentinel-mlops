@@ -32,6 +32,10 @@
             <span class="label">Available Models</span>
             <strong id="available-models">-</strong>
           </div>
+          <div>
+            <span class="label">Incident Summary</span>
+            <strong id="incident-status">unknown</strong>
+          </div>
         </div>
       </section>
 
@@ -79,6 +83,17 @@
 
         <h3>Recent Requests</h3>
         <div class="history" id="history"></div>
+      </section>
+
+      <section class="incident card">
+        <h2>Incident Summary (Gemini Optional)</h2>
+        <p class="muted">
+          Generates a concise analyst-style digest from headline + prediction metadata.
+        </p>
+        <div class="controls incident-controls">
+          <button id="incident-btn" type="button">Generate Incident Summary</button>
+        </div>
+        <div class="incident-box" id="incident-output">No summary generated yet.</div>
       </section>
 
       <section class="telemetry card">

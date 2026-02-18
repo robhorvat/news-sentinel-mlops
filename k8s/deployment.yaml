@@ -22,6 +22,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: news-sentinel-config
+            - secretRef:
+                name: news-sentinel-secrets
+                optional: true
           readinessProbe:
             httpGet:
               path: /healthz

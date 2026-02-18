@@ -9,9 +9,18 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from news_sentinel.inference.predictors import PredictorManager
-from news_sentinel.inference.schemas import HealthResponse, PredictRequest, PredictResponse
+from news_sentinel.inference.schemas import (
+    HealthResponse,
+    IncidentSummaryRequest,
+    IncidentSummaryResponse,
+    PredictRequest,
+    PredictResponse,
+)
+from news_sentinel.llm.gemini_summary import GeminiIncidentSummarizer, GeminiSummaryUnavailableError
 from news_sentinel.observability.metrics import (
     ERRORS_TOTAL,
+    INCIDENT_SUMMARIES_TOTAL,
+    INCIDENT_SUMMARY_LATENCY_SECONDS,
     PREDICTION_CONFIDENCE,
     PREDICTIONS_TOTAL,
     REQUEST_LATENCY_SECONDS,
@@ -19,9 +28,20 @@ from news_sentinel.observability.metrics import (
     metrics_response,
 )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.predictor_manager = PredictorManager.from_artifacts()
+    app.state.incident_summarizer = None
+    app.state.incident_summary_reason = "Gemini summary is disabled."
+
+    try:
+        summarizer = GeminiIncidentSummarizer.from_env()
+        app.state.incident_summarizer = summarizer
+        app.state.incident_summary_reason = f"enabled ({summarizer.model_name})"
+    except GeminiSummaryUnavailableError as exc:
+        app.state.incident_summary_reason = str(exc)
+
     yield
 
 
@@ -65,6 +85,7 @@ def list_models() -> dict:
 
 @app.get("/")
 def root() -> dict:
+    incident_reason = getattr(app.state, "incident_summary_reason", "Gemini summary status unknown.")
     return {
         "service": "news-sentinel-api",
         "status": "ok",
@@ -72,6 +93,8 @@ def root() -> dict:
         "docs": "/docs",
         "health": "/healthz",
         "predict": "/predict",
+        "incident_summary": "/incident-summary",
+        "incident_summary_status": incident_reason,
         "metrics": "/metrics",
     }
 
@@ -105,4 +128,47 @@ def predict(payload: PredictRequest) -> PredictResponse:
         model_used=result.model_used,
         confidence=result.confidence,
         class_scores=result.class_scores,
+    )
+
+
+@app.post("/incident-summary", response_model=IncidentSummaryResponse)
+def incident_summary(payload: IncidentSummaryRequest) -> IncidentSummaryResponse:
+    summarizer = getattr(app.state, "incident_summarizer", None)
+    reason = getattr(app.state, "incident_summary_reason", "Gemini summary unavailable.")
+    manager: PredictorManager = app.state.predictor_manager
+
+    if summarizer is None:
+        INCIDENT_SUMMARIES_TOTAL.labels(status="unavailable", model="none").inc()
+        ERRORS_TOTAL.labels(path="/incident-summary", error_type="SummaryUnavailable").inc()
+        raise HTTPException(status_code=503, detail=reason)
+
+    try:
+        result = manager.predict(text=payload.text, requested_model=payload.model)
+    except ValueError as exc:
+        ERRORS_TOTAL.labels(path="/incident-summary", error_type="ValueError").inc()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    started = perf_counter()
+    try:
+        summary = summarizer.summarize(
+            headline=payload.text,
+            predicted_label=result.label_name,
+            model_used=result.model_used,
+            confidence=result.confidence,
+            class_scores=result.class_scores,
+        )
+    except Exception as exc:
+        INCIDENT_SUMMARIES_TOTAL.labels(status="error", model=result.model_used).inc()
+        ERRORS_TOTAL.labels(path="/incident-summary", error_type=type(exc).__name__).inc()
+        raise HTTPException(status_code=502, detail="Failed to generate incident summary.") from exc
+    finally:
+        elapsed = perf_counter() - started
+        INCIDENT_SUMMARY_LATENCY_SECONDS.labels(model=result.model_used).observe(elapsed)
+
+    INCIDENT_SUMMARIES_TOTAL.labels(status="success", model=result.model_used).inc()
+    return IncidentSummaryResponse(
+        summary=summary,
+        predicted_label=result.label_name,
+        model_used=result.model_used,
+        confidence=result.confidence,
     )

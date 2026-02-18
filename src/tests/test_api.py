@@ -19,6 +19,18 @@ class _FakeManager:
         return _FakeResult()
 
 
+class _FakeSummarizer:
+    def summarize(
+        self,
+        headline: str,
+        predicted_label: str,
+        model_used: str,
+        confidence: float,
+        class_scores: dict[str, float],
+    ) -> str:
+        _ = (headline, predicted_label, model_used, confidence, class_scores)
+        return "- Situation: Classified headline.\n- Evidence: Baseline predicted Business."
+
 
 def test_healthz_endpoint() -> None:
     app.state.predictor_manager = _FakeManager()
@@ -31,12 +43,14 @@ def test_healthz_endpoint() -> None:
 
 def test_root_endpoint_contains_dashboard_link() -> None:
     app.state.predictor_manager = _FakeManager()
+    app.state.incident_summary_reason = "Gemini summary disabled."
     client = TestClient(app)
 
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
     assert data["dashboard"] == "/dashboard"
+    assert data["incident_summary"] == "/incident-summary"
 
 
 def test_dashboard_endpoint_serves_html() -> None:
@@ -48,7 +62,6 @@ def test_dashboard_endpoint_serves_html() -> None:
     assert "News Sentinel Control Room" in response.text
 
 
-
 def test_predict_endpoint() -> None:
     app.state.predictor_manager = _FakeManager()
     client = TestClient(app)
@@ -58,3 +71,28 @@ def test_predict_endpoint() -> None:
     data = response.json()
     assert data["label_name"] == "Business"
     assert data["model_used"] == "baseline"
+
+
+def test_incident_summary_unavailable() -> None:
+    app.state.predictor_manager = _FakeManager()
+    app.state.incident_summarizer = None
+    app.state.incident_summary_reason = "Gemini summary disabled for test."
+    client = TestClient(app)
+
+    response = client.post("/incident-summary", json={"text": "Stocks rally on earnings", "model": "auto"})
+    assert response.status_code == 503
+    assert "Gemini summary disabled for test." in response.json()["detail"]
+
+
+def test_incident_summary_success() -> None:
+    app.state.predictor_manager = _FakeManager()
+    app.state.incident_summarizer = _FakeSummarizer()
+    app.state.incident_summary_reason = "enabled (fake)"
+    client = TestClient(app)
+
+    response = client.post("/incident-summary", json={"text": "Stocks rally on earnings", "model": "auto"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["predicted_label"] == "Business"
+    assert data["model_used"] == "baseline"
+    assert "Situation" in data["summary"]

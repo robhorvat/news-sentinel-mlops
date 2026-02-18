@@ -21,6 +21,7 @@ AG News dataset
 -> PyTorch model (TextCNN)
 -> artifact + metadata registry
 -> FastAPI inference (`/predict`)
+-> optional Gemini incident digest (`/incident-summary`)
 -> observability (`/metrics`)
 -> drift checks (class prior + TF-IDF centroid shift)
 -> evaluation harness + quality gate
@@ -39,8 +40,7 @@ AG News dataset
 
 ## Current Progress (16-step plan)
 
-- Completed: Steps 1-14 (bootstrap through CI/minikube manifests).
-- Pending: Step 15 optional Gemini incident summary endpoint.
+- Completed: Steps 1-15 (bootstrap through optional Gemini incident summary endpoint).
 - In progress: Step 16 README and portfolio polish.
 
 ## Reproducible Workflow
@@ -57,6 +57,9 @@ make train-baseline
 # optional torch path
 make install-torch
 make train-textcnn-quick
+
+# optional Gemini summary dependency
+make install-gemini
 
 # evaluation and gates
 make eval-report
@@ -87,6 +90,7 @@ This fail is expected right now and useful: it prevents promoting a worse model.
 - `GET /healthz`
 - `GET /models`
 - `POST /predict`
+- `POST /incident-summary` (optional Gemini-backed digest)
 - `GET /metrics`
 
 Example:
@@ -120,6 +124,25 @@ make minikube-status
 minikube service -n news-sentinel news-sentinel-api --url
 ```
 
+## Optional Gemini Incident Summary
+
+The API exposes `POST /incident-summary` behind a feature flag.
+
+Local run:
+
+```bash
+make install-gemini
+export GEMINI_SUMMARY_ENABLED=1
+export GEMINI_API_KEY="your_key_here"
+make run-api
+```
+
+Kubernetes run:
+
+- `k8s/configmap.yaml` sets `GEMINI_SUMMARY_ENABLED=0` by default.
+- `make minikube-secret-from-env` injects `GEMINI_API_KEY` from `.env`.
+- Set `GEMINI_SUMMARY_ENABLED=1` in `k8s/configmap.yaml` (or `kubectl set env`) to activate.
+
 ## CI
 
 Workflow: `.github/workflows/ci.yml`
@@ -135,7 +158,7 @@ Runs on push/PR:
 
 - TextCNN currently underperforms the classical baseline.
 - No external streaming ingestion yet (batch-first by design).
-- Optional Gemini incident summary endpoint is not implemented yet.
+- Gemini digest quality is prompt-based and should be benchmarked before production use.
 
 Next high-value steps:
 - stronger PyTorch training recipe (class balancing, scheduler, more epochs)

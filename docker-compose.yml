@@ -12,3 +12,7 @@ services:
       - BASELINE_MODEL_PATH=artifacts/baseline_tfidf_svc.joblib
       - TEXTCNN_CHECKPOINT_PATH=artifacts/textcnn_quick/textcnn.pt
       - MODEL_REGISTRY_LATEST_PATH=artifacts/model_registry_latest.json
+      - GEMINI_SUMMARY_ENABLED=${GEMINI_SUMMARY_ENABLED:-0}
+      - GEMINI_SUMMARY_MODEL=${GEMINI_SUMMARY_MODEL:-gemini-1.5-flash}
+      - GEMINI_SUMMARY_TEMPERATURE=${GEMINI_SUMMARY_TEMPERATURE:-0.2}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}

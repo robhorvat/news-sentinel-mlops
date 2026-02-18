@@ -35,6 +35,19 @@ PREDICTION_CONFIDENCE = Histogram(
     buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0),
 )
 
+INCIDENT_SUMMARIES_TOTAL = Counter(
+    "news_api_incident_summaries_total",
+    "Count of incident summaries by status and model.",
+    labelnames=("status", "model"),
+)
+
+INCIDENT_SUMMARY_LATENCY_SECONDS = Histogram(
+    "news_api_incident_summary_latency_seconds",
+    "Latency for generating incident summaries.",
+    labelnames=("model",),
+    buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 15.0),
+)
+
 
 def metrics_response() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

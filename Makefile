@@ -2,7 +2,7 @@ PYTHON ?= venv/bin/python
 IMAGE_CPU ?= news-sentinel-mlops:cpu
 IMAGE_TORCH ?= news-sentinel-mlops:torch
 
-.PHONY: prep-data train-baseline train-textcnn-quick train-textcnn show-model-registry check-drift eval-report quality-gate quality-gate-soft install-torch run-api docker-build docker-build-torch docker-run docker-run-torch minikube-namespace minikube-build-image minikube-secret-from-env minikube-deploy minikube-status ci test lint
+.PHONY: prep-data train-baseline train-textcnn-quick train-textcnn show-model-registry check-drift eval-report quality-gate quality-gate-soft install-torch install-gemini run-api docker-build docker-build-torch docker-run docker-run-torch minikube-namespace minikube-build-image minikube-secret-from-env minikube-deploy minikube-status ci test lint
 
 prep-data:
 	$(PYTHON) scripts/prepare_ag_news.py --output-dir data/ag_news/processed
@@ -17,6 +17,9 @@ train-baseline:
 install-torch:
 	$(PYTHON) -m ensurepip --upgrade
 	$(PYTHON) -m pip install -r requirements-torch.txt
+
+install-gemini:
+	$(PYTHON) -m pip install -r requirements-llm.txt
 
 train-textcnn-quick:
 	$(PYTHON) scripts/train_textcnn.py \
