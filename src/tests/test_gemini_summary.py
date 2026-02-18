@@ -1,4 +1,8 @@
-from news_sentinel.llm.gemini_summary import GeminiSummaryConfig, build_local_incident_summary
+from news_sentinel.llm.gemini_summary import (
+    GeminiSummaryConfig,
+    _has_required_sections,
+    build_local_incident_summary,
+)
 
 
 def test_gemini_summary_config_defaults_disabled(monkeypatch) -> None:
@@ -41,3 +45,15 @@ def test_build_local_incident_summary_contains_core_fields() -> None:
     assert "Situation" in text
     assert "Business" in text
     assert "Gemini fallback" in text
+
+
+def test_has_required_sections() -> None:
+    good = (
+        "- Situation: x\n"
+        "- Evidence: y\n"
+        "- Risk: z\n"
+        "- Next Action: n\n"
+    )
+    bad = "- Situation: x"
+    assert _has_required_sections(good) is True
+    assert _has_required_sections(bad) is False

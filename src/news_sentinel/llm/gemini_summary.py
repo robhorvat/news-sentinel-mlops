@@ -111,9 +111,15 @@ class GeminiIncidentSummarizer:
                     ),
                 )
                 text = (getattr(response, "text", "") or "").strip()
-                if text:
+                if text and _has_required_sections(text):
                     return text
-                last_error = f"empty Gemini response from model {model_name}"
+                if text:
+                    last_error = (
+                        f"incomplete Gemini summary from {model_name}: "
+                        "missing one or more required sections"
+                    )
+                else:
+                    last_error = f"empty Gemini response from model {model_name}"
             except self._genai_errors.APIError as exc:
                 code = getattr(exc, "status", "unknown")
                 message = (getattr(exc, "message", "") or str(exc)).strip()
@@ -195,6 +201,12 @@ def build_local_incident_summary(
         "- Risk: Misclassification risk increases for short or ambiguous headlines.\n"
         "- Next Action: Cross-check with 2-3 supporting sources before escalation."
     )
+
+
+def _has_required_sections(text: str) -> bool:
+    required = ("Situation", "Evidence", "Risk", "Next Action")
+    lowered = text.lower()
+    return all(section.lower() in lowered for section in required)
 
 
 def _top_labels(class_scores: Dict[str, float], limit: int = 2) -> Iterable[tuple[str, float]]:
