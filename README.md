@@ -38,30 +38,29 @@ This project is built to show exactly that end-to-end ownership.
 
 ```mermaid
 flowchart LR
-  A[AG News dataset] --> B[Preprocess / clean text]
-  B --> C1[Baseline: TF-IDF + LinearSVC]
-  B --> C2[Neural: TextCNN (PyTorch)]
+  A["AG News Dataset"] --> B["Preprocess and Clean Text"]
+  B --> C1["Baseline: TF-IDF + LinearSVC"]
+  B --> C2["Neural: TextCNN (PyTorch)"]
 
-  C1 --> D[Artifacts + model registry]
+  C1 --> D["Artifacts + Model Registry"]
   C2 --> D
 
-  D --> E[FastAPI service]
-  E --> P[/predict]
-  E --> S[/incident-summary]
-  E --> M[/metrics]
-  E --> U[/dashboard]
+  D --> E["FastAPI Service"]
+  E --> P["predict endpoint"]
+  E --> S["incident-summary endpoint"]
+  E --> M["metrics endpoint"]
+  E --> U["dashboard"]
 
-  G[Evaluation harness\nmacro-F1 + latency] --> Q[Quality gate]
-  C1 --> G
+  C1 --> G["Evaluation Harness: macro-F1 + latency"]
   C2 --> G
+  R["Drift Checks: class prior + centroid shift"] --> G
+  G --> Q["Quality Gate"]
   Q --> D
 
-  R[Drift checks\nclass prior + centroid shift] --> G
+  E --> K["Docker Image"]
+  K --> N["Minikube Deployment"]
 
-  E --> K[Docker image]
-  K --> N[Minikube deployment]
-
-  G --> CI[GitHub Actions CI]
+  G --> CI["GitHub Actions CI"]
   Q --> CI
 ```
 
@@ -209,7 +208,7 @@ minikube service -n news-sentinel news-sentinel-api --url
 
 ## Demo Probe + Recording Checklist
 
-Use this checklist for interview/demo recordings:
+Use this checklist for demo recordings:
 
 1. Start API with Gemini enabled (or intentionally disabled to show fallback path).
 2. Open dashboard and run at least one `predict` request.
@@ -251,7 +250,7 @@ Runs on push/PR:
 - Expand drift checks and alerting thresholds.
 - Add Grafana dashboard bundle for metrics visualization.
 
-## Interview Talk Track
+## Topics to Highlight
 
 - Problem framing: move beyond notebook ML into deployable NLP operations.
 - Engineering decision: keep baseline as first-class model and enforce gate rules.
