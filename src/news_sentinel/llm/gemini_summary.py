@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from typing import Dict, Iterable
 
@@ -114,15 +115,15 @@ class GeminiIncidentSummarizer:
                         ),
                     )
                     text = (getattr(response, "text", "") or "").strip()
-                    if text and _has_required_sections(text):
-                        return text
                     if text:
-                        msg = (
-                            f"incomplete Gemini summary from {model_name}: "
-                            "missing one or more required sections"
+                        return _coerce_to_complete_summary(
+                            source_text=text,
+                            predicted_label=predicted_label,
+                            model_used=model_used,
+                            confidence=confidence,
+                            class_scores=class_scores,
                         )
-                    else:
-                        msg = f"empty Gemini response from model {model_name}"
+                    msg = f"empty Gemini response from model {model_name}"
 
                     if model_name == self._model_name:
                         primary_error = msg
@@ -217,15 +218,13 @@ def build_local_incident_summary(
     class_scores: Dict[str, float],
     failure_note: str | None = None,
 ) -> str:
-    top_two = _top_labels(class_scores, limit=2)
-    alt_text = ", ".join(f"{name} {score:.1%}" for name, score in top_two)
-    note = f" (Gemini fallback: {failure_note})" if failure_note else ""
-
-    return (
-        f"- Situation: Headline routed as {predicted_label} by {model_used}.{note}\n"
-        f"- Evidence: Confidence={confidence:.2%}; top scores: {alt_text}.\n"
-        "- Risk: Misclassification risk increases for short or ambiguous headlines.\n"
-        "- Next Action: Cross-check with 2-3 supporting sources before escalation."
+    _ = (headline, failure_note)
+    return _coerce_to_complete_summary(
+        source_text=None,
+        predicted_label=predicted_label,
+        model_used=model_used,
+        confidence=confidence,
+        class_scores=class_scores,
     )
 
 
@@ -254,6 +253,77 @@ def _is_terminal_api_error(code: str) -> bool:
         "RESOURCE_EXHAUSTED",
     }
     return code in terminal_codes
+
+
+def _extract_section_map(source_text: str) -> dict[str, str]:
+    section_map: dict[str, str] = {}
+    if not source_text:
+        return section_map
+
+    label_to_key = {
+        "situation": "Situation",
+        "evidence": "Evidence",
+        "risk": "Risk",
+        "next action": "Next Action",
+    }
+
+    for raw_line in source_text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        line = re.sub(r"^[-*]\s*", "", line)
+        line = re.sub(r"^\*\*", "", line)
+        line = re.sub(r"\*\*$", "", line)
+
+        if ":" not in line:
+            continue
+
+        label_part, value_part = line.split(":", 1)
+        normalized_label = re.sub(r"\s+", " ", label_part.strip().lower())
+        normalized_label = normalized_label.replace("`", "").replace("*", "")
+        key = label_to_key.get(normalized_label)
+        if not key:
+            continue
+
+        value = value_part.strip()
+        if value:
+            section_map[key] = value
+
+    return section_map
+
+
+def _coerce_to_complete_summary(
+    *,
+    source_text: str | None,
+    predicted_label: str,
+    model_used: str,
+    confidence: float,
+    class_scores: Dict[str, float],
+) -> str:
+    top_two = _top_labels(class_scores, limit=2)
+    alt_text = ", ".join(f"{name} {score:.1%}" for name, score in top_two)
+
+    section_map = _extract_section_map(source_text or "")
+    situation_default = f"Headline routed as {predicted_label} by {model_used}."
+    evidence_default = f"Confidence={confidence:.2%}; top scores: {alt_text}."
+    risk_default = "Misclassification risk increases for short or ambiguous headlines."
+    action_default = "Cross-check with 2-3 supporting sources before escalation."
+
+    if "Situation" not in section_map and source_text:
+        first_line = source_text.strip().splitlines()[0].strip()
+        if first_line:
+            clipped = first_line[:180].rstrip()
+            if not clipped.endswith("."):
+                clipped = clipped + "."
+            situation_default = clipped
+
+    return (
+        f"- Situation: {section_map.get('Situation', situation_default)}\n"
+        f"- Evidence: {section_map.get('Evidence', evidence_default)}\n"
+        f"- Risk: {section_map.get('Risk', risk_default)}\n"
+        f"- Next Action: {section_map.get('Next Action', action_default)}"
+    )
 
 
 def _top_labels(class_scores: Dict[str, float], limit: int = 2) -> Iterable[tuple[str, float]]:

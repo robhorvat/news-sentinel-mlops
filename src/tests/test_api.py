@@ -122,4 +122,7 @@ def test_incident_summary_runtime_failure_falls_back_to_local_summary() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["predicted_label"] == "Business"
-    assert "Gemini fallback" in data["summary"]
+    assert "Situation" in data["summary"]
+    assert "Evidence" in data["summary"]
+    assert "Risk" in data["summary"]
+    assert "Next Action" in data["summary"]

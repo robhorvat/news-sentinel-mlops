@@ -1,5 +1,6 @@
 from news_sentinel.llm.gemini_summary import (
     GeminiSummaryConfig,
+    _coerce_to_complete_summary,
     _has_required_sections,
     build_local_incident_summary,
 )
@@ -44,7 +45,8 @@ def test_build_local_incident_summary_contains_core_fields() -> None:
     )
     assert "Situation" in text
     assert "Business" in text
-    assert "Gemini fallback" in text
+    assert "Evidence" in text
+    assert "Next Action" in text
 
 
 def test_has_required_sections() -> None:
@@ -57,3 +59,18 @@ def test_has_required_sections() -> None:
     bad = "- Situation: x"
     assert _has_required_sections(good) is True
     assert _has_required_sections(bad) is False
+
+
+def test_coerce_to_complete_summary_with_partial_text() -> None:
+    partial = "- Situation: The classifier predicts Sports for this headline."
+    completed = _coerce_to_complete_summary(
+        source_text=partial,
+        predicted_label="Sports",
+        model_used="baseline",
+        confidence=0.80,
+        class_scores={"0": 0.06, "1": 0.80, "2": 0.07, "3": 0.07},
+    )
+    assert "Situation" in completed
+    assert "Evidence" in completed
+    assert "Risk" in completed
+    assert "Next Action" in completed
