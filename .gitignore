@@ -11,6 +11,7 @@ __pycache__/
 # Virtual environments
 venv/
 .venv/
+.env
 
 # Artifacts and local runtime files
 artifacts/*

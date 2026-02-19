@@ -2,7 +2,7 @@ PYTHON ?= venv/bin/python
 IMAGE_CPU ?= news-sentinel-mlops:cpu
 IMAGE_TORCH ?= news-sentinel-mlops:torch
 
-.PHONY: prep-data train-baseline train-textcnn-quick train-textcnn show-model-registry check-drift eval-report quality-gate quality-gate-soft install-torch install-gemini run-api docker-build docker-build-torch docker-run docker-run-torch minikube-namespace minikube-build-image minikube-secret-from-env minikube-deploy minikube-status ci test lint
+.PHONY: prep-data train-baseline train-textcnn-quick train-textcnn show-model-registry check-drift eval-report quality-gate quality-gate-soft install-torch install-gemini run-api demo-probe docker-build docker-build-torch docker-run docker-run-torch minikube-namespace minikube-build-image minikube-secret-from-env minikube-deploy minikube-status ci test lint
 
 prep-data:
 	$(PYTHON) scripts/prepare_ag_news.py --output-dir data/ag_news/processed
@@ -67,6 +67,12 @@ quality-gate: eval-report
 
 run-api:
 	PYTHONPATH=src $(PYTHON) -m uvicorn news_sentinel.api.main:app --host 0.0.0.0 --port 8000
+
+demo-probe:
+	$(PYTHON) scripts/demo_probe.py \
+		--base-url http://127.0.0.1:8000 \
+		--output-json reports/demo_probe.json \
+		--output-md reports/demo_probe.md
 
 docker-build:
 	docker build -t $(IMAGE_CPU) .

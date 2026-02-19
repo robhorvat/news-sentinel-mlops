@@ -40,8 +40,7 @@ AG News dataset
 
 ## Current Progress (16-step plan)
 
-- Completed: Steps 1-15 (bootstrap through optional Gemini incident summary endpoint).
-- In progress: Step 16 README and portfolio polish.
+- Completed: Steps 1-16 (bootstrap through portfolio-ready demo and runbook polish).
 
 ## Reproducible Workflow
 
@@ -49,6 +48,7 @@ AG News dataset
 python -m venv venv
 source venv/bin/activate
 python -m pip install -r requirements.txt
+cp .env.example .env
 
 # data + baseline
 make prep-data
@@ -68,6 +68,9 @@ make quality-gate-soft
 # api
 make run-api
 # open http://localhost:8000/dashboard
+
+# demo verification (run while API is up)
+make demo-probe
 
 # tests
 make test
@@ -133,7 +136,7 @@ Local run:
 ```bash
 make install-gemini
 export GEMINI_SUMMARY_ENABLED=1
-export GEMINI_API_KEY="AIza..."   # use a real key, not the literal string "your_key"
+export GEMINI_API_KEY="AIza..."   # use a real key, never commit it
 export GEMINI_SUMMARY_MODEL="gemini-2.5-flash"
 # Optional. Leave empty unless you verified model names in your account/region.
 export GEMINI_SUMMARY_FALLBACK_MODELS=""
@@ -147,6 +150,24 @@ Kubernetes run:
 - Set `GEMINI_SUMMARY_ENABLED=1` in `k8s/configmap.yaml` (or `kubectl set env`) to activate.
 
 If Gemini returns auth/quota/model errors at runtime, the endpoint now falls back to a deterministic local incident summary so the dashboard remains demo-safe.
+
+## Demo Probe + Recording Checklist
+
+Use this when preparing a portfolio/interview walkthrough.
+
+1. Start the API.
+2. Open dashboard: `http://localhost:8000/dashboard`.
+3. Run at least one `predict` and one `incident-summary` from UI.
+4. In another terminal run `make demo-probe`.
+5. Show generated artifacts:
+   - `reports/demo_probe.json`
+   - `reports/demo_probe.md`
+6. Show `/metrics` and call out:
+   - `news_api_requests_total`
+   - `news_api_predictions_total`
+   - `news_api_errors_total`
+
+This gives a reproducible proof bundle for demo day (UI + API + metrics + report files).
 
 ## CI
 
