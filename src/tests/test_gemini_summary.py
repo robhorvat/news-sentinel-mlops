@@ -62,9 +62,10 @@ def test_has_required_sections() -> None:
 
 
 def test_coerce_to_complete_summary_with_partial_text() -> None:
-    partial = "- Situation: The classifier predicts Sports for this headline."
+    partial = '- Situation: Headline "Oil prices climb after supply chain\n- Evidence: confidence high'
     completed = _coerce_to_complete_summary(
         source_text=partial,
+        headline="Oil prices climb after supply chain disruptions",
         predicted_label="Sports",
         model_used="baseline",
         confidence=0.80,
@@ -74,3 +75,5 @@ def test_coerce_to_complete_summary_with_partial_text() -> None:
     assert "Evidence" in completed
     assert "Risk" in completed
     assert "Next Action" in completed
+    assert 'Headline "Oil prices climb after supply chain' not in completed
+    assert "Headline routed as Sports by baseline." in completed

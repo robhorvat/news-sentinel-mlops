@@ -118,6 +118,7 @@ class GeminiIncidentSummarizer:
                     if text:
                         return _coerce_to_complete_summary(
                             source_text=text,
+                            headline=headline,
                             predicted_label=predicted_label,
                             model_used=model_used,
                             confidence=confidence,
@@ -221,6 +222,7 @@ def build_local_incident_summary(
     _ = (headline, failure_note)
     return _coerce_to_complete_summary(
         source_text=None,
+        headline=headline,
         predicted_label=predicted_label,
         model_used=model_used,
         confidence=confidence,
@@ -296,6 +298,7 @@ def _extract_section_map(source_text: str) -> dict[str, str]:
 def _coerce_to_complete_summary(
     *,
     source_text: str | None,
+    headline: str = "",
     predicted_label: str,
     model_used: str,
     confidence: float,
@@ -310,20 +313,53 @@ def _coerce_to_complete_summary(
     risk_default = "Misclassification risk increases for short or ambiguous headlines."
     action_default = "Cross-check with 2-3 supporting sources before escalation."
 
-    if "Situation" not in section_map and source_text:
-        first_line = source_text.strip().splitlines()[0].strip()
-        if first_line:
-            clipped = first_line[:180].rstrip()
-            if not clipped.endswith("."):
-                clipped = clipped + "."
-            situation_default = clipped
+    situation_value = _clean_situation_value(
+        section_map.get("Situation", ""),
+        headline=headline,
+    ) or situation_default
+    evidence_value = _clean_sentence(section_map.get("Evidence", "")) or evidence_default
+    risk_value = _clean_sentence(section_map.get("Risk", "")) or risk_default
+    action_value = _clean_sentence(section_map.get("Next Action", "")) or action_default
 
     return (
-        f"- Situation: {section_map.get('Situation', situation_default)}\n"
-        f"- Evidence: {section_map.get('Evidence', evidence_default)}\n"
-        f"- Risk: {section_map.get('Risk', risk_default)}\n"
-        f"- Next Action: {section_map.get('Next Action', action_default)}"
+        f"- Situation: {situation_value}\n"
+        f"- Evidence: {evidence_value}\n"
+        f"- Risk: {risk_value}\n"
+        f"- Next Action: {action_value}"
     )
+
+
+def _clean_sentence(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+
+    if value[-1] not in ".!?":
+        value = value + "."
+    return value
+
+
+def _clean_situation_value(value: str, headline: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+
+    # Reject clearly truncated forms like: Headline "Oil prices climb after supply chain
+    lowered = value.lower()
+    if lowered.startswith("headline") and headline and headline.lower() not in lowered:
+        return ""
+
+    # Reject odd unmatched quotes, which are a strong truncation signal.
+    if value.count('"') % 2 == 1 or value.count("'") % 2 == 1:
+        return ""
+
+    # Basic minimum richness guard.
+    if len(value.split()) < 5:
+        return ""
+
+    if value[-1] not in ".!?":
+        value = value + "."
+    return value
 
 
 def _top_labels(class_scores: Dict[str, float], limit: int = 2) -> Iterable[tuple[str, float]]:
