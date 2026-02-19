@@ -306,9 +306,15 @@ def _coerce_to_complete_summary(
 ) -> str:
     top_two = _top_labels(class_scores, limit=2)
     alt_text = ", ".join(f"{name} {score:.1%}" for name, score in top_two)
+    headline_snippet = _headline_snippet(headline)
 
     section_map = _extract_section_map(source_text or "")
-    situation_default = f"Headline routed as {predicted_label} by {model_used}."
+    if headline_snippet:
+        situation_default = (
+            f'Headline "{headline_snippet}" routed as {predicted_label} by {model_used}.'
+        )
+    else:
+        situation_default = f"Headline routed as {predicted_label} by {model_used}."
     evidence_default = f"Confidence={confidence:.2%}; top scores: {alt_text}."
     risk_default = "Misclassification risk increases for short or ambiguous headlines."
     action_default = "Cross-check with 2-3 supporting sources before escalation."
@@ -316,7 +322,15 @@ def _coerce_to_complete_summary(
     situation_value = _clean_situation_value(
         section_map.get("Situation", ""),
         headline=headline,
-    ) or situation_default
+    )
+    if situation_value and not _situation_has_required_context(
+        value=situation_value,
+        headline_snippet=headline_snippet,
+        predicted_label=predicted_label,
+        model_used=model_used,
+    ):
+        situation_value = ""
+    situation_value = situation_value or situation_default
     evidence_value = _clean_sentence(section_map.get("Evidence", "")) or evidence_default
     risk_value = _clean_sentence(section_map.get("Risk", "")) or risk_default
     action_value = _clean_sentence(section_map.get("Next Action", "")) or action_default
@@ -360,6 +374,42 @@ def _clean_situation_value(value: str, headline: str) -> str:
     if value[-1] not in ".!?":
         value = value + "."
     return value
+
+
+def _headline_snippet(headline: str, max_chars: int = 72) -> str:
+    headline = " ".join((headline or "").split()).strip()
+    if not headline:
+        return ""
+    if len(headline) <= max_chars:
+        return headline
+    if max_chars <= 3:
+        return headline[:max_chars]
+    return headline[: max_chars - 3].rstrip() + "..."
+
+
+def _situation_has_required_context(
+    *,
+    value: str,
+    headline_snippet: str,
+    predicted_label: str,
+    model_used: str,
+) -> bool:
+    lowered = value.lower()
+    has_label = predicted_label.lower() in lowered
+    has_model = model_used.lower() in lowered
+
+    has_headline = "headline" in lowered
+    if headline_snippet:
+        snippet_lower = headline_snippet.lower()
+        if snippet_lower in lowered:
+            has_headline = True
+        else:
+            # Accept if at least one meaningful token from headline appears.
+            tokens = [tok for tok in re.findall(r"[a-z0-9]+", snippet_lower) if len(tok) >= 5]
+            if any(tok in lowered for tok in tokens):
+                has_headline = True
+
+    return has_label and has_model and has_headline
 
 
 def _top_labels(class_scores: Dict[str, float], limit: int = 2) -> Iterable[tuple[str, float]]:

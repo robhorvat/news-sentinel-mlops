@@ -75,5 +75,20 @@ def test_coerce_to_complete_summary_with_partial_text() -> None:
     assert "Evidence" in completed
     assert "Risk" in completed
     assert "Next Action" in completed
-    assert 'Headline "Oil prices climb after supply chain' not in completed
-    assert "Headline routed as Sports by baseline." in completed
+    assert 'Headline "Oil prices climb after supply chain disruptions" routed as Sports by baseline.' in completed
+
+
+def test_coerce_to_complete_summary_replaces_generic_situation() -> None:
+    partial = "- Situation: The 'baseline' model correctly classified."
+    completed = _coerce_to_complete_summary(
+        source_text=partial,
+        headline="AI chip startup unveils faster inference hardware",
+        predicted_label="Sci/Tech",
+        model_used="baseline",
+        confidence=0.60,
+        class_scores={"0": 0.15, "1": 0.11, "2": 0.13, "3": 0.60},
+    )
+    assert (
+        '- Situation: Headline "AI chip startup unveils faster inference hardware" '
+        "routed as Sci/Tech by baseline."
+    ) in completed
