@@ -9,7 +9,7 @@ It demonstrates a full ML delivery loop with measurable gates:
 - FastAPI inference service + live dashboard
 - Prometheus-compatible runtime telemetry
 - Drift checks and model registry metadata
-- Docker packaging, Minikube manifests, and GitHub Actions CI
+- Docker packaging, Minikube manifests and GitHub Actions CI
 
 ## Live Demo Workflow
 
