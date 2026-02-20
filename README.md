@@ -11,6 +11,16 @@ It demonstrates a full ML delivery loop with measurable gates:
 - Drift checks and model registry metadata
 - Docker packaging, Minikube manifests and GitHub Actions CI
 
+## 🚀 Live Demo
+
+<p align="center">
+  <a href="docs/images/news_dashboard.jpg">
+    <img src="docs/images/news_dashboard.jpg" alt="News Sentinel Control Room dashboard" width="980" />
+  </a>
+</p>
+
+<p align="center"><em>Control-room dashboard with live prediction, optional incident summary and telemetry.</em></p>
+
 ## Live Demo Workflow
 
 1. Start API (`make run-api`).
