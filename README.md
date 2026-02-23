@@ -1,8 +1,18 @@
 # News Sentinel MLOps
 
-News Sentinel is a production-minded NLP MLOps project for AG News classification.
+News Sentinel is an NLP MLOps project for AG News classification.
 
-It demonstrates a full ML delivery loop with measurable gates:
+I built it to show what happens after model training: evaluation, serving, observability, deployment and regression control in one workflow.
+
+## What is in this repository
+
+- A baseline model and a trainable PyTorch model
+- Reproducible evaluation with explicit promotion gates
+- FastAPI inference API and browser dashboard
+- Drift checks, metrics, Docker packaging and Minikube deployment
+- CI checks that run core training/eval steps on push
+
+Core components:
 - Classical baseline (`TF-IDF + LinearSVC`)
 - Trainable neural model (`TextCNN` in PyTorch)
 - Reproducible evaluation + quality gate
@@ -35,14 +45,14 @@ Generated demo artifacts:
 
 ## The Problem
 
-Text classification projects often stop at "model training". Hiring teams, however, look for ownership across the full system:
+Many text classification projects stop at the notebook stage. In practice the hard part is owning the whole system end to end:
 - measurable baselines
 - reproducible evaluation
 - runtime observability
 - deployment shape
 - clear rollback/fallback behavior
 
-This project is built to show exactly that end-to-end ownership.
+This project focuses on that full lifecycle, not just model accuracy.
 
 ## Architecture
 
@@ -87,8 +97,8 @@ flowchart LR
 
 ## Current Status
 
-- Completed: Steps 1-16 (including portfolio-ready demo probe + runbook polish).
-- Quality gate currently fails in strict comparison mode because TextCNN underperforms baseline. This is expected and intentionally visible.
+- Completed: Steps 1-16 (including demo probe and runbook polish).
+- Current strict gate status is fail because TextCNN underperforms baseline. This is expected and intentionally visible.
 
 ## Evaluation Snapshot
 
@@ -260,7 +270,7 @@ Runs on push/PR:
 - Expand drift checks and alerting thresholds.
 - Add Grafana dashboard bundle for metrics visualization.
 
-## Topics to Highlight
+## Discussion Points
 
 - Problem framing: move beyond notebook ML into deployable NLP operations.
 - Engineering decision: keep baseline as first-class model and enforce gate rules.
